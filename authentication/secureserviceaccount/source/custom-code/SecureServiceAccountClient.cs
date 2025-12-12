@@ -34,6 +34,8 @@ using System.Net.Http;
 using System.Runtime.Serialization;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Autodesk.Authentication.SecureServiceAccount;
 
@@ -549,12 +551,21 @@ public class SecureServiceAccountClient : BaseClient
          new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
       ];
 
-      foreach (var scope in scopes)
+      // foreach (var scope in scopes)
+      // {
+      //    var memberInfo = typeof(Scopes).GetMember(scope.ToString()).FirstOrDefault();
+      //    var attribute = Attribute.GetCustomAttributes(memberInfo, typeof(EnumMemberAttribute)).FirstOrDefault();
+      //    claims.Add(new("scope", ((EnumMemberAttribute)attribute)?.Value));
+      // }
+      var scopeList = scopes.Select(s =>
       {
-         var memberInfo = typeof(Scopes).GetMember(scope.ToString()).FirstOrDefault();
+         var memberInfo = typeof(Scopes).GetMember(s.ToString()).FirstOrDefault();
          var attribute = Attribute.GetCustomAttributes(memberInfo, typeof(EnumMemberAttribute)).FirstOrDefault();
-         claims.Add(new("scope", ((EnumMemberAttribute)attribute)?.Value));
-      }
+         return ((EnumMemberAttribute)attribute)?.Value;
+      }).ToList();
+
+      string scopeJson = JsonConvert.SerializeObject(scopeList);
+      claims.Add(new ("scope", scopeJson, JsonClaimValueTypes.JsonArray));
 
       var currentTime = DateTime.UtcNow;
       var expirationTime = currentTime.AddSeconds(lifetimeSeconds);
